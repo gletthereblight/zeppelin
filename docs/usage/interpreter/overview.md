@@ -110,10 +110,10 @@ For more information, please consult [Interpreter Binding Mode](./interpreter_bi
 ## Interpreter Lifecycle Management
 
 Before 0.8.0, Zeppelin doesn't have lifecycle management for interpreters. Users had to shut down interpreters explicitly via the UI. Starting from 0.8.0, Zeppelin provides a new interface
-`LifecycleManager` to control the lifecycle of interpreters. For now, there are two implementations: `NullLifecycleManager` and `TimeoutLifecycleManager` which is the default. 
+`LifecycleManager` to control the lifecycle of interpreters. For now, there are two implementations: `NullLifecycleManager` and `TimeoutLifecycleManager`. 
 
 `NullLifecycleManager` will do nothing, i.e., the user needs to control the lifecycle of interpreter by themselves as before. `TimeoutLifecycleManager` will shut down interpreters after an interpreter remains idle for a while. By default, the idle threshold is 1 hour.
-Users can change this threshold via the `zeppelin.interpreter.lifecyclemanager.timeout.threshold` setting. `TimeoutLifecycleManager` is the default lifecycle manager, and users can change it via `zeppelin.interpreter.lifecyclemanager.class`.
+Users can change this threshold via the `zeppelin.interpreter.lifecyclemanager.timeout.threshold` setting. `NullLifecycleManager` is the default lifecycle manager, and users can change it via `zeppelin.interpreter.lifecyclemanager.class`.
 
 
 ## Inline Generic Configuration
@@ -140,7 +140,7 @@ Snippet of code (language of interpreter) that executes after initialization of 
 Credentials from the credential manager can be injected into Notebooks. Credential injection works by replacing the following patterns in Notebooks with matching credentials for the Credential Manager: `{CREDENTIAL_ENTITY.user}` and `{CREDENTIAL_ENTITY.password}`. However, credential injection must be enabled per Interpreter, by adding a boolean `injectCredentials` setting in the Interpreters configuration. Injected passwords are removed from Notebook output to prevent accidentally leaking passwords.
 
 **Credential Injection Setting**
-<img src="{{BASE_PATH}}/assets/themes/zeppelin/img/screenshots/credential_injection_setting.png" width="500px">
+<img src="{{BASE_PATH}}/assets/themes/zeppelin/img/screenshots/credential_setting_injection.png" width="620px">
 
 **Credential Entry Example**
 <img src="{{BASE_PATH}}/assets/themes/zeppelin/img/screenshots/credential_entry.png" width="500px">

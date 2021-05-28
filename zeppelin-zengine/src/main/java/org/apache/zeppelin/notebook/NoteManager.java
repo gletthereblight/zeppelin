@@ -20,6 +20,7 @@ package org.apache.zeppelin.notebook;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
+import org.apache.zeppelin.notebook.exception.NotePathAlreadyExistsException;
 import org.apache.zeppelin.notebook.repo.NotebookRepo;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.slf4j.Logger;
@@ -30,9 +31,9 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -53,7 +54,7 @@ import java.util.stream.Stream;
 @Singleton
 public class NoteManager {
   private static final Logger LOGGER = LoggerFactory.getLogger(NoteManager.class);
-  public static String TRASH_FOLDER = "~Trash";
+  public static final String TRASH_FOLDER = "~Trash";
   private Folder root;
   private Folder trash;
 
@@ -72,7 +73,7 @@ public class NoteManager {
   // build the tree structure of notes
   private void init() throws IOException {
     this.notesInfo = notebookRepo.list(AuthenticationInfo.ANONYMOUS).values().stream()
-        .collect(Collectors.toMap(noteInfo -> noteInfo.getId(), notesInfo -> notesInfo.getPath()));
+        .collect(Collectors.toMap(NoteInfo::getId, NoteInfo::getPath));
     this.notesInfo.entrySet().stream()
         .forEach(entry ->
         {
@@ -99,11 +100,11 @@ public class NoteManager {
               try {
                 return getNoteNode(notePath).getNote();
               } catch (Exception e) {
-                LOGGER.warn("Fail to load note: " + notePath, e);
+                LOGGER.warn("Fail to load note: {}", notePath, e);
                 return null;
               }
             })
-            .filter(note -> note != null);
+            .filter(Objects::nonNull);
   }
 
   /**
@@ -118,6 +119,11 @@ public class NoteManager {
 
   private void addOrUpdateNoteNode(Note note, boolean checkDuplicates) throws IOException {
     String notePath = note.getPath();
+
+    if (checkDuplicates && !isNotePathAvailable(notePath)) {
+      throw new NotePathAlreadyExistsException("Note '" + notePath + "' existed");
+    }
+
     String[] tokens = notePath.split("/");
     Folder curFolder = root;
     for (int i = 0; i < tokens.length - 1; ++i) {
@@ -125,9 +131,7 @@ public class NoteManager {
         curFolder = curFolder.getOrCreateFolder(tokens[i]);
       }
     }
-    if (checkDuplicates && curFolder.containsNote(tokens[tokens.length - 1])) {
-      throw new IOException("Note '" + note.getPath() + "' existed");
-    }
+
     curFolder.addNote(tokens[tokens.length -1], note);
     this.notesInfo.put(note.getId(), note.getPath());
   }
@@ -168,15 +172,24 @@ public class NoteManager {
 
   /**
    * Save note to NoteManager, it won't check duplicates, this is used when updating note.
+   * Only save note in 2 cases:
+   *  1. Note is new created, isSaved is false
+   *  2. Note is in loaded state. Unload state means its content is empty.
    *
    * @param note
    * @param subject
    * @throws IOException
    */
   public void saveNote(Note note, AuthenticationInfo subject) throws IOException {
-    addOrUpdateNoteNode(note);
-    this.notebookRepo.save(note, subject);
-    note.setLoaded(true);
+    if (note.isRemoved()) {
+      LOGGER.warn("Try to save note: {} when it is removed", note.getId());
+    } else if (note.isLoaded() || !note.isSaved()) {
+      addOrUpdateNoteNode(note);
+      this.notebookRepo.save(note, subject);
+      note.setSaved(true);
+    } else {
+      LOGGER.warn("Try to save note: {} when it is unloaded", note.getId());
+    }
   }
 
   public void addNote(Note note, AuthenticationInfo subject) throws IOException {
@@ -214,6 +227,10 @@ public class NoteManager {
     String notePath = this.notesInfo.get(noteId);
     if (noteId == null) {
       throw new IOException("No metadata found for this note: " + noteId);
+    }
+
+    if (!isNotePathAvailable(newNotePath)) {
+      throw new NotePathAlreadyExistsException("Note '" + newNotePath + "' existed");
     }
 
     // move the old NoteNode from notePath to newNotePath
@@ -360,13 +377,31 @@ public class NoteManager {
   }
 
   private String getFolderName(String notePath) {
-    int pos = notePath.lastIndexOf("/");
+    int pos = notePath.lastIndexOf('/');
     return notePath.substring(0, pos);
   }
 
   private String getNoteName(String notePath) {
-    int pos = notePath.lastIndexOf("/");
+    int pos = notePath.lastIndexOf('/');
     return notePath.substring(pos + 1);
+  }
+
+  private boolean isNotePathAvailable(String notePath) {
+    String[] tokens = notePath.split("/");
+    Folder curFolder = root;
+    for (int i = 0; i < tokens.length - 1; ++i) {
+      if (!StringUtils.isBlank(tokens[i])) {
+        curFolder = curFolder.getFolder(tokens[i]);
+        if (curFolder == null) {
+          return true;
+        }
+      }
+    }
+    if (curFolder.containsNote(tokens[tokens.length - 1])) {
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -483,12 +518,12 @@ public class NoteManager {
     }
 
     public List<NoteNode> getNoteNodeRecursively() {
-      List<NoteNode> notes = new ArrayList<>();
-      notes.addAll(this.notes.values());
+      List<NoteNode> noteNodeRecursively = new ArrayList<>();
+      noteNodeRecursively.addAll(this.notes.values());
       for (Folder folder : subFolders.values()) {
-        notes.addAll(folder.getNoteNodeRecursively());
+        noteNodeRecursively.addAll(folder.getNoteNodeRecursively());
       }
-      return notes;
+      return noteNodeRecursively;
     }
 
     public Map<String, NoteNode> getNotes() {

@@ -36,7 +36,7 @@ import com.google.gson.GsonBuilder;
  */
 public class Credentials {
 
-  private static final Logger LOG = LoggerFactory.getLogger(Credentials.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Credentials.class);
 
   private ConfigStorage storage;
   private Map<String, UserCredentials> credentialsMap;
@@ -52,7 +52,7 @@ public class Credentials {
    */
   public Credentials(ZeppelinConfiguration conf) {
     credentialsMap = new HashMap<>();
-    if (conf.credentialsPersist().booleanValue()) {
+    if (conf.credentialsPersist()) {
       String encryptKey = conf.getCredentialsEncryptKey();
       if (StringUtils.isNotBlank(encryptKey)) {
         this.encryptor = new Encryptor(encryptKey);
@@ -64,7 +64,7 @@ public class Credentials {
         gson = builder.create();
         loadFromFile();
       } catch (IOException e) {
-        LOG.error("Fail to create ConfigStorage for Credentials. Persistenz will be disabled", e);
+        LOGGER.error("Fail to create ConfigStorage for Credentials. Persistenz will be disabled", e);
         encryptor = null;
         storage = null;
         gson = null;
@@ -137,7 +137,7 @@ public class Credentials {
   private void loadFromFile() throws IOException {
     try {
       String json = storage.loadCredentials();
-      if (encryptor != null) {
+      if (json != null && encryptor != null) {
         json = encryptor.decrypt(json);
       }
 

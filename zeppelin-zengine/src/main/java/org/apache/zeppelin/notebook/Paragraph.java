@@ -39,7 +39,6 @@ import org.apache.zeppelin.display.Input;
 import org.apache.zeppelin.helium.HeliumPackage;
 import org.apache.zeppelin.interpreter.Constants;
 import org.apache.zeppelin.interpreter.ExecutionContext;
-import org.apache.zeppelin.interpreter.ExecutionContextBuilder;
 import org.apache.zeppelin.interpreter.Interpreter;
 import org.apache.zeppelin.interpreter.Interpreter.FormType;
 import org.apache.zeppelin.interpreter.InterpreterContext;
@@ -72,9 +71,7 @@ import com.google.common.collect.Maps;
 public class Paragraph extends JobWithProgressPoller<InterpreterResult> implements Cloneable,
     JsonSerializable {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(Paragraph.class);
-  private static Pattern REPL_PATTERN =
-      Pattern.compile("(\\s*)%([\\w\\.]+)(\\(.*?\\))?.*", Pattern.DOTALL);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Paragraph.class);
 
   private String title;
   // text is composed of intpText and scriptText.
@@ -244,15 +241,9 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
   }
 
   public Interpreter getBindedInterpreter() throws InterpreterNotFoundException {
-    ExecutionContext executionContext = new ExecutionContextBuilder()
-            .setUser(user)
-            .setNoteId(note.getId())
-            .setDefaultInterpreterGroup(note.getDefaultInterpreterGroup())
-            .setInIsolatedMode(note.isIsolatedMode())
-            .setStartTime(note.getStartTime())
-            .setInterpreterGroupId(interpreterGroupId)
-            .createExecutionContext();
-
+    ExecutionContext executionContext = note.getExecutionContext();
+    executionContext.setUser(user);
+    executionContext.setInterpreterGroupId(interpreterGroupId);
     return this.note.getInterpreterFactory().getInterpreter(intpText, executionContext);
   }
 
@@ -288,7 +279,10 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
     if (this.scriptText.isEmpty()) {
       return 0;
     }
-    int countCharactersBeforeScript = buffer.indexOf(this.scriptText);
+    // Try to find the right cursor from this startPos, otherwise you may get the wrong cursor.
+    // e.g.  %spark.pyspark  spark.
+    int startPos = this.intpText == null ? 0 : this.intpText.length();
+    int countCharactersBeforeScript = buffer.indexOf(this.scriptText, startPos);
     if (countCharactersBeforeScript > 0) {
       cursor -= countCharactersBeforeScript;
     }
@@ -346,6 +340,11 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
       Map<String, Object> config
               = interpreterSetting.getConfig(interpreter.getClassName());
       mergeConfig(config);
+
+      // clear output
+      setResult(null);
+      cleanOutputBuffer();
+      cleanRuntimeInfos();
 
       setStatus(Status.PENDING);
 
@@ -670,13 +669,9 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
 
   public boolean isValidInterpreter(String replName) {
     try {
-      ExecutionContext executionContext = new ExecutionContextBuilder()
-              .setUser(user)
-              .setNoteId(note.getId())
-              .setDefaultInterpreterGroup(note.getDefaultInterpreterGroup())
-              .setInIsolatedMode(note.isIsolatedMode())
-              .setStartTime(note.getStartTime())
-              .createExecutionContext();
+      ExecutionContext executionContext = note.getExecutionContext();
+      executionContext.setUser(user);
+      executionContext.setInterpreterGroupId(interpreterGroupId);
       return note.getInterpreterFactory().getInterpreter(replName, executionContext) != null;
     } catch (InterpreterNotFoundException e) {
       return false;

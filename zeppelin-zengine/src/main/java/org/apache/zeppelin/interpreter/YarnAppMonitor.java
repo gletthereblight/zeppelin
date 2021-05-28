@@ -23,12 +23,12 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
+import org.apache.zeppelin.conf.ZeppelinConfiguration.ConfVars;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreterManagedProcess;
 import org.apache.zeppelin.scheduler.SchedulerThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -82,11 +82,11 @@ public class YarnAppMonitor {
                       String yarnDiagnostics = appReport.getDiagnostics();
                       interpreterManagedProcess.processStopped("Yarn diagnostics: " + yarnDiagnostics);
                       iter.remove();
-                      LOGGER.info("Remove " + appId + " from YarnAppMonitor, because its state is " +
+                      LOGGER.info("Remove {} from YarnAppMonitor, because its state is {}", appId ,
                               appReport.getYarnApplicationState());
                     } else if (appReport.getYarnApplicationState() == YarnApplicationState.FINISHED) {
                       iter.remove();
-                      LOGGER.info("Remove " + appId + " from YarnAppMonitor, because its state is " +
+                      LOGGER.info("Remove {} from YarnAppMonitor, because its state is ", appId,
                               appReport.getYarnApplicationState());
                     }
                   }
@@ -94,8 +94,8 @@ public class YarnAppMonitor {
                   LOGGER.warn("Fail to check yarn app status", e);
                 }
               },
-              conf.getInt("zeppelin.interpreter.yarn.monitor.interval_secs", 10),
-              conf.getInt("zeppelin.interpreter.yarn.monitor.interval_secs", 10),
+              conf.getInt(ConfVars.ZEPPELIN_INTERPRETER_YARN_MONITOR_INTERVAL_SECS),
+              conf.getInt(ConfVars.ZEPPELIN_INTERPRETER_YARN_MONITOR_INTERVAL_SECS),
               TimeUnit.SECONDS);
 
       LOGGER.info("YarnAppMonitor is started");
@@ -105,7 +105,7 @@ public class YarnAppMonitor {
   }
 
   public void addYarnApp(ApplicationId appId, RemoteInterpreterManagedProcess interpreterManagedProcess) {
-    LOGGER.info("Add " + appId + " to YarnAppMonitor");
+    LOGGER.info("Add {} to YarnAppMonitor", appId);
     this.apps.put(appId, interpreterManagedProcess);
   }
 }

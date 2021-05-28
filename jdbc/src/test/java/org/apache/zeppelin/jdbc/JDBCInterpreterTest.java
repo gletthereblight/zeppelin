@@ -109,7 +109,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     context = InterpreterContext.builder()
         .setAuthenticationInfo(new AuthenticationInfo("testUser"))
         .setParagraphId("paragraphId")
-        .setInterpreterOut(new InterpreterOutput(null))
+        .setInterpreterOut(new InterpreterOutput())
         .build();
   }
 
@@ -305,11 +305,11 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     assertEquals("select * from test_table WHERE ID = \";'\"", multipleSqlArray.get(2));
     assertEquals("select * from test_table WHERE ID = ';'", multipleSqlArray.get(3));
     assertEquals("select '\n', ';'", multipleSqlArray.get(4));
-    assertEquals("select replace('A\\;B', '\\', 'text')", multipleSqlArray.get(5));
-    assertEquals("select '\\', ';'", multipleSqlArray.get(6));
-    assertEquals("select '''', ';'", multipleSqlArray.get(7));
-    assertEquals("select /*+ scan */ * from test_table", multipleSqlArray.get(8));
-    assertEquals("select * from test_table", multipleSqlArray.get(9));
+    assertEquals("\nselect replace('A\\;B', '\\', 'text')", multipleSqlArray.get(5));
+    assertEquals("\nselect '\\', ';'", multipleSqlArray.get(6));
+    assertEquals("\nselect '''', ';'", multipleSqlArray.get(7));
+    assertEquals("\nselect /*+ scan */ * from test_table", multipleSqlArray.get(8));
+    assertEquals("\n\nselect * from test_table", multipleSqlArray.get(9));
   }
 
   @Test
@@ -546,7 +546,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     // user1 runs default
     InterpreterContext context = InterpreterContext.builder()
             .setAuthenticationInfo(user1Credential)
-            .setInterpreterOut(new InterpreterOutput(null))
+            .setInterpreterOut(new InterpreterOutput())
             .setReplName("jdbc")
             .build();
     jdbc.interpret("", context);
@@ -558,7 +558,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     // user2 run default
     context = InterpreterContext.builder()
         .setAuthenticationInfo(user2Credential)
-        .setInterpreterOut(new InterpreterOutput(null))
+        .setInterpreterOut(new InterpreterOutput())
         .setReplName("jdbc")
         .build();
     jdbc.interpret("", context);
@@ -572,7 +572,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     localProperties.put("db", "hive");
     context = InterpreterContext.builder()
             .setAuthenticationInfo(user2Credential)
-            .setInterpreterOut(new InterpreterOutput(null))
+            .setInterpreterOut(new InterpreterOutput())
             .setLocalProperties(localProperties)
             .setReplName("jdbc")
             .build();
@@ -598,7 +598,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     // user1 runs default
     InterpreterContext context = InterpreterContext.builder()
             .setAuthenticationInfo(user1Credential)
-            .setInterpreterOut(new InterpreterOutput(null))
+            .setInterpreterOut(new InterpreterOutput())
             .setReplName("hive")
             .build();
     jdbc.interpret("", context);
@@ -610,7 +610,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     // user2 run default
     context = InterpreterContext.builder()
             .setAuthenticationInfo(user2Credential)
-            .setInterpreterOut(new InterpreterOutput(null))
+            .setInterpreterOut(new InterpreterOutput())
             .setReplName("hive")
             .build();
     jdbc.interpret("", context);
@@ -643,7 +643,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     List<InterpreterResultMessage> resultMessages = context.out.toInterpreterResultMessage();
     assertEquals(3, resultMessages.size());
     assertEquals(InterpreterResult.Type.TEXT, resultMessages.get(0).getType());
-    assertEquals("Query executed successfully. Affected rows : 0\n",
+    assertEquals("Query executed successfully. Affected rows : 0\n\n",
             resultMessages.get(0).getData());
     assertEquals(InterpreterResult.Type.TEXT, resultMessages.get(1).getType());
     assertEquals("Query executed successfully. Affected rows : 1\n",
@@ -690,7 +690,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     localProperties.put("db", "anotherPrefix");
     InterpreterContext context = InterpreterContext.builder()
         .setAuthenticationInfo(new AuthenticationInfo("testUser"))
-        .setInterpreterOut(new InterpreterOutput(null))
+        .setInterpreterOut(new InterpreterOutput())
         .setLocalProperties(localProperties)
         .build();
     jdbcInterpreter.executePrecode(context);
@@ -704,7 +704,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
 
     assertEquals(3, resultMessages.size());
     assertEquals(InterpreterResult.Type.TEXT, resultMessages.get(0).getType());
-    assertEquals("Query executed successfully. Affected rows : 0\n",
+    assertEquals("Query executed successfully. Affected rows : 0\n\n",
             resultMessages.get(0).getData());
     assertEquals(InterpreterResult.Type.TEXT, resultMessages.get(1).getType());
     assertEquals("Query executed successfully. Affected rows : 1\n",
@@ -773,7 +773,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     localProperties.put("db", "anotherPrefix");
     InterpreterContext context = InterpreterContext.builder()
         .setAuthenticationInfo(new AuthenticationInfo("testUser"))
-        .setInterpreterOut(new InterpreterOutput(null))
+        .setInterpreterOut(new InterpreterOutput())
         .setLocalProperties(localProperties)
         .build();
 
@@ -822,7 +822,7 @@ public class JDBCInterpreterTest extends BasicJDBCTestCaseAdapter {
     return InterpreterContext.builder()
             .setAuthenticationInfo(new AuthenticationInfo("testUser"))
             .setParagraphId("paragraphId")
-            .setInterpreterOut(new InterpreterOutput(null))
+            .setInterpreterOut(new InterpreterOutput())
             .build();
   }
 }

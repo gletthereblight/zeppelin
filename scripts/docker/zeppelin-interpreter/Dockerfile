@@ -22,27 +22,27 @@ LABEL maintainer="Apache Software Foundation <dev@zeppelin.apache.org>"
 ARG version="0.9.0-SNAPSHOT"
 
 ENV VERSION="${version}" \
-    Z_HOME="/opt/zeppelin"
+    ZEPPELIN_HOME="/opt/zeppelin"
 
 RUN set -ex && \
     apt-get -y update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-8-jre-headless wget && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-8-jre-headless wget tini && \
     # Cleanup
     rm -rf /var/lib/apt/lists/* && \
     apt-get autoclean && \
     apt-get clean
 
-COPY --from=zeppelin-distribution /opt/zeppelin/bin ${Z_HOME}/bin
-COPY log4j.properties ${Z_HOME}/conf/
-COPY log4j_yarn_cluster.properties ${Z_HOME}/conf/
+COPY --from=zeppelin-distribution /opt/zeppelin/bin ${ZEPPELIN_HOME}/bin
+COPY log4j.properties ${ZEPPELIN_HOME}/conf/
+COPY log4j_yarn_cluster.properties ${ZEPPELIN_HOME}/conf/
 # Decide:
 ## 1) Build a huge image with all interpreters (default)
-COPY --from=zeppelin-distribution /opt/zeppelin/interpreter ${Z_HOME}/interpreter
+COPY --from=zeppelin-distribution /opt/zeppelin/interpreter ${ZEPPELIN_HOME}/interpreter
 ## 2) Build an image with only some interpreters
 #### Copy interpreter-shaded JAR, needed for all interpreters
-### COPY --from=zeppelin-distribution /opt/zeppelin/interpreter/zeppelin-interpreter-shaded-${VERSION}.jar ${Z_HOME}/interpreter/zeppelin-interpreter-shaded-${VERSION}.jar
+### COPY --from=zeppelin-distribution /opt/zeppelin/interpreter/zeppelin-interpreter-shaded-${VERSION}.jar ${ZEPPELIN_HOME}/interpreter/zeppelin-interpreter-shaded-${VERSION}.jar
 #### Copy specific interpreters,  replace "${interpreter_name}" with your interpreter. Of course you can repeat the line with defferent interpreter
-### COPY --from=zeppelin-distribution /opt/zeppelin/interpreter/${interpreter_name}  ${Z_HOME}/interpreter/${interpreter_name}
+### COPY --from=zeppelin-distribution /opt/zeppelin/interpreter/${interpreter_name}  ${ZEPPELIN_HOME}/interpreter/${interpreter_name}
 
 
 # Decide: Install conda to manage python and R packages. Maybe adjust the packages in pip_packages.txt or conda_packages.txt
@@ -73,11 +73,12 @@ RUN set -ex && \
     # chmod -R ug+rwX /opt/conda
 ENV PATH /opt/conda/bin:$PATH
 
-RUN mkdir -p "${Z_HOME}/logs" "${Z_HOME}/run" "${Z_HOME}/local-repo" && \
+RUN mkdir -p "${ZEPPELIN_HOME}/logs" "${ZEPPELIN_HOME}/run" "${ZEPPELIN_HOME}/local-repo" && \
      # Allow process to edit /etc/passwd, to create a user entry for zeppelin
     chgrp root /etc/passwd && chmod ug+rw /etc/passwd && \
     # Give access to some specific folders
-    chmod -R 775 "${Z_HOME}/logs" "${Z_HOME}/run" "${Z_HOME}/local-repo"
+    chmod -R 775 "${ZEPPELIN_HOME}/logs" "${ZEPPELIN_HOME}/run" "${ZEPPELIN_HOME}/local-repo"
 
 USER 1000
-WORKDIR ${Z_HOME}
+ENTRYPOINT [ "/usr/bin/tini", "--" ]
+WORKDIR ${ZEPPELIN_HOME}
